@@ -1,5 +1,5 @@
 require 'resque_mailer/version'
-require 'wrapper'
+require 'resque_mailer/arg_wrapper'
 
 module Resque
   module Mailer
@@ -28,7 +28,7 @@ module Resque
 
     module ClassMethods
 
-      include Wrapper
+      include ArgWrapper
 
       def current_env
         if defined?(Rails)
@@ -91,7 +91,7 @@ module Resque
     end
 
     class MessageDecoy
-      include Wrapper
+      include ArgWrapper
       delegate :to_s, :to => :actual_message
 
       def initialize(mailer_class, method_name, *args)

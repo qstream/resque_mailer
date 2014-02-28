@@ -1,4 +1,6 @@
-module Wrapper
+module Resque
+  module Mailer
+module ArgWrapper
   def unwrap_arg(arg)
     if arg.is_a?(Array) && arg[0] == 'active_record'
       arg[1].constantize.find_by_id(arg[2])
@@ -18,9 +20,11 @@ module Wrapper
   end
 
   def unwrap_hash(args)
-    Hash[args.map do |k, v|
+    hash = Hash[args.map do |k, v|
       [unwrap_arg(k), unwrap_arg(v)]
     end]
+    hash.symbolize_keys! if hash.delete('symbolize-keys')
+    hash
   end
 
   def wrap_arg(arg)
@@ -42,10 +46,13 @@ module Wrapper
   end
 
   def wrap_hash(args)
-    Hash[args.map do |k, v|
+    hash = Hash[args.map do |k, v|
       [wrap_arg(k), wrap_arg(v)]
     end]
+    hash['symbolize-keys'] = args.keys.all?{ |k| k.is_a?(Symbol) }
+    hash
   end
 
 end
-
+end
+end
