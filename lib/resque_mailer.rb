@@ -1,4 +1,5 @@
 require 'resque_mailer/version'
+require 'resque_mailer/arg_wrapper'
 
 module Resque
   module Mailer
@@ -27,6 +28,8 @@ module Resque
 
     module ClassMethods
 
+      include ArgWrapper
+
       def current_env
         if defined?(Rails)
           ::Resque::Mailer.current_env || ::Rails.env
@@ -45,7 +48,7 @@ module Resque
 
       def perform(action, *args)
         begin
-          message = self.send(:new, action, *args).message
+          message = self.send(:new, action, *unwrap_array(args)).message
           message.deliver
         rescue Exception => ex
           if Mailer.error_handler
@@ -88,6 +91,7 @@ module Resque
     end
 
     class MessageDecoy
+      include ArgWrapper
       delegate :to_s, :to => :actual_message
 
       def initialize(mailer_class, method_name, *args)
@@ -126,7 +130,7 @@ module Resque
 
         if @mailer_class.deliver?
           begin
-            resque.enqueue(@mailer_class, @method_name, *@args)
+            resque.enqueue(@mailer_class, @method_name, *wrap_array(@args))
           rescue Errno::ECONNREFUSED, Redis::CannotConnectError
             logger.error "Unable to connect to Redis; falling back to synchronous mail delivery" if logger
             deliver!
@@ -142,7 +146,7 @@ module Resque
         end
 
         if @mailer_class.deliver?
-          resque.enqueue_at(time, @mailer_class, @method_name, *@args)
+          resque.enqueue_at(time, @mailer_class, @method_name, *wrap_array(@args))
         end
       end
 
@@ -154,7 +158,7 @@ module Resque
         end
 
         if @mailer_class.deliver?
-          resque.enqueue_in(time, @mailer_class, @method_name, *@args)
+          resque.enqueue_in(time, @mailer_class, @method_name, *wrap_array(@args))
         end
       end
 
@@ -163,7 +167,7 @@ module Resque
           raise "You need to install resque-scheduler to use unschedule_delivery"
         end
 
-        resque.remove_delayed(@mailer_class, @method_name, *@args)
+        resque.remove_delayed(@mailer_class, @method_name, *wrap_array(@args))
       end
 
       def deliver!
