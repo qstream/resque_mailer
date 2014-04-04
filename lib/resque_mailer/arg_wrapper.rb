@@ -30,7 +30,7 @@ module ArgWrapper
   def wrap_arg(arg)
     if arg.is_a?(ActiveRecord::Base)
       ['active_record', arg.class.name, arg.id]
-    elsif arg.is_a?(Array)
+    elsif arg.is_a?(Array) || arg.is_a?(ActiveRecord::Relation)
       wrap_array(arg)
     elsif arg.is_a?(Hash)
       wrap_hash(arg)
